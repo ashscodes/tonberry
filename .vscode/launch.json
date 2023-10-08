@@ -26,7 +26,7 @@
         "$LoadLib = '[DllImport(\"kernel32.dll\")] public static extern IntPtr LoadLibrary(string dllToLoad);';",
         "$Git = Add-Type -MemberDefinition $LoadLib -Name Win32Utils -Namespace Git -PassThru;",
         "$NativeLib = (Get-Item -Path ./src/Tonberry.Core/bin/Debug/net7.0/runtimes/win-x64/native/git2-*.dll).FullName;",
-        "$Git::LoadLibrary($NativeLib);",
+        "[System.Void]($Git::LoadLibrary($NativeLib));",
         "Add-Type -Path src/Tonberry.Core/bin/Debug/net7.0/Tonberry.Core.dll;",
         "}"
       ],
