@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tonberry.Core\Tonberry.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Spectre.Console" Version="0.47.0" />
+    <PackageReference Include="Spectre.Console.Cli" Version="0.47.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <AssemblyName>tonberry</AssemblyName>
+    <AssemblyVersion>0.0.0</AssemblyVersion>
+    <Authors>https://github.com/ashscodes</Authors>
+    <Company>Community</Company>
+    <DebugType>Embedded</DebugType>
+    <Description>tonberry - Dealing karma to unruly repositories since 2023.</Description>
+    <Guid>c102988f-7ac6-4ea4-937c-70fb9c29ac6b</Guid>
+    <LangVersion>latest</LangVersion>
+    <NeutralLanguage>en</NeutralLanguage>
+    <OutputType>Exe</OutputType>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>tonberry</ToolCommandName>
+    <TargetFramework>net7.0</TargetFramework>
+  </PropertyGroup>
+
+</Project>
