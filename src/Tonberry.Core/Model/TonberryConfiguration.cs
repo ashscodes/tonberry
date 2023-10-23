@@ -171,4 +171,19 @@ public class TonberryConfiguration : BaseConfiguration
 
     internal bool IsMaintainer(string name)
         => Maintainers is not null && Maintainers.Any(m => m.Equals(name, Resources.StrCompare));
+
+    internal void UpdateVersion(string projectName, TonberryVersion version)
+    {
+        if (projectName.Equals(Name, Resources.StrCompare))
+        {
+            Version = version;
+            return;
+        }
+
+        var project = Projects?.FirstOrDefault(p => p.Name.Equals(projectName, Resources.StrCompare));
+        if (project is not null)
+        {
+            project.Version = version;
+        }
+    }
 }
