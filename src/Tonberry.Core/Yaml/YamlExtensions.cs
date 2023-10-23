@@ -8,6 +8,6 @@ public static class YamlExtensions
     public static DeserializerBuilder WithRequiredPropertyValidation(this DeserializerBuilder builder)
         => builder.WithNodeDeserializer(n =>
         {
-            return new RequiredDeserializer(n);
+            return new PropertyValidationDeserializer(n);
         }, s => s.InsteadOf<ObjectNodeDeserializer>());
 }

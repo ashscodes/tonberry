@@ -7,11 +7,11 @@ using YamlDotNet.Serialization;
 
 namespace Tonberry.Core.Yaml;
 
-public class RequiredDeserializer : INodeDeserializer
+public class PropertyValidationDeserializer : INodeDeserializer
 {
     private readonly INodeDeserializer _nodeDeserializer;
 
-    public RequiredDeserializer(INodeDeserializer nodeDeserializer) => _nodeDeserializer = nodeDeserializer;
+    public PropertyValidationDeserializer(INodeDeserializer nodeDeserializer) => _nodeDeserializer = nodeDeserializer;
 
     public bool Deserialize(IParser reader,
                             Type expectedType,
