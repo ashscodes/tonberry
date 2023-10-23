@@ -171,9 +171,11 @@ public class TonberryVersion : IComparable, IComparable<TonberryVersion>, IEquat
     }
 
     public bool Equals(TonberryVersion other)
-    {
-        throw new NotImplementedException();
-    }
+        => other is not null
+           && (Major == other.Major)
+           && (Minor == other.Minor)
+           && (Patch == other.Patch)
+           && string.Equals(PreReleaseLabel, other.PreReleaseLabel, StringComparison.Ordinal);
 
     public void RemoveLabels()
     {
@@ -181,10 +183,7 @@ public class TonberryVersion : IComparable, IComparable<TonberryVersion>, IEquat
         PreReleaseLabel = string.Empty;
     }
 
-    public override bool Equals(object obj)
-    {
-        return base.Equals(obj);
-    }
+    public override bool Equals(object obj) => Equals(obj as TonberryVersion);
 
     public override int GetHashCode() => ToString().GetHashCode();
 
