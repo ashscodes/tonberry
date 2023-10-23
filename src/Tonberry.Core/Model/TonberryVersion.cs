@@ -127,7 +127,7 @@ public class TonberryVersion : IComparable, IComparable<TonberryVersion>, IEquat
 
     public int CompareTo(object obj)
     {
-        if (obj == null)
+        if (obj is null)
         {
             return 1;
         }
