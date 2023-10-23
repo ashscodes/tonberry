@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using LibGit2Sharp;
+using Tonberry.Core.Internal;
 
 namespace Tonberry.Core;
 
@@ -40,22 +41,20 @@ internal static partial class GitUtil
         return options;
     }
 
-    public static void RemoveLocalTag(string remoteName = "origin")
+    public static void RemoveLocalTags(string remoteName = "origin")
     {
-        try
-        {
-            InvokeGitCliCommand(Directory.GetCurrentDirectory(),
-                                out string stdError,
-                                out string stdOutput,
+        /*
+            Output possibly to be used at a later date.
+            Trying to avoid too much overlap with the git cli
+            as we only want to provide tagging, changelog,
+            versioning and conventional commit support.
+        */
+
+        _ = InvokeGitCliCommand(Directory.GetCurrentDirectory(),
                                 "fetch",
                                 "--prune",
                                 remoteName,
                                 "+refs/tags/*:refs/tags/*");
-        }
-        catch
-        {
-            throw;
-        }
     }
 
     private static UsernamePasswordCredentials GetUserCredentials(string url,
@@ -110,20 +109,14 @@ internal static partial class GitUtil
                 Username = username
             };
         }
-        catch
-        {
-            throw;
-        }
         finally
         {
             gitProcess.Dispose();
         }
     }
 
-    private static void InvokeGitCliCommand(string directoryPath,
-                                            out string stdError,
-                                            out string stdOutput,
-                                            params string[] args)
+    private static GitExeResult InvokeGitCliCommand(string directoryPath,
+                                                    params string[] args)
     {
         var processInfo = new ProcessStartInfo
         {
@@ -150,12 +143,7 @@ internal static partial class GitUtil
         {
             gitProcess.Start();
             gitProcess.WaitForExit();
-            stdError = gitProcess.StandardError.ReadToEnd();
-            stdOutput = gitProcess.StandardOutput.ReadToEnd();
-        }
-        catch
-        {
-            throw;
+            return new GitExeResult(gitProcess);
         }
         finally
         {
