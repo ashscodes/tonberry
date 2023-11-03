@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Tonberry.Core;
 
@@ -29,13 +28,5 @@ public class TonberryCommitException : TonberryException
     {
         Branch = branchName;
         Remote = remoteName;
-    }
-
-    public TonberryCommitException(string message, StringBuilder commit) : base(message)
-    {
-        Result = new Dictionary<string, object>()
-        {
-            { "commitMessage", commit.ToString() }
-        };
     }
 }

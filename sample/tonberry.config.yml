@@ -1,0 +1,76 @@
+commitTypes:
+  - emoji: ':sparkling_heart:'
+    doNotShowInChangelog: false
+    logDisplayName: Features
+    name: feat
+  - emoji: ':bug:'
+    doNotShowInChangelog: false
+    logDisplayName: Bug Fixes
+    name: fix
+  - emoji: ':electric_plug:'
+    doNotShowInChangelog: false
+    logDisplayName: Performance Improvements
+    name: perf
+  - emoji: ':vertical_traffic_light:'
+    doNotShowInChangelog: false
+    logDisplayName: Tests
+    name: test
+  - emoji: ':books:'
+    doNotShowInChangelog: false
+    logDisplayName: Documentation
+    name: docs
+  - emoji: ':recycle:'
+    doNotShowInChangelog: false
+    logDisplayName: Code Refactoring
+    name: refactor
+  - emoji: ':ribbon:'
+    doNotShowInChangelog: false
+    logDisplayName: Styling
+    name: style
+  - emoji: ':dash:'
+    doNotShowInChangelog: false
+    logDisplayName: Reverted Changes
+    name: revert
+  - emoji: ':construction_worker:'
+    doNotShowInChangelog: false
+    logDisplayName: Build
+    name: build
+  - emoji: ':ferris_wheel:'
+    doNotShowInChangelog: false
+    logDisplayName: CI
+    name: ci
+  - emoji: ':notebook:'
+    doNotShowInChangelog: true
+    logDisplayName: Chores
+    name: chore
+commitUrlFormat: https://github.com/myOrg/myRepo/commit/{0}
+compareUrlFormat: https://github.com/myOrg/myRepo/compare/{0}...{1}
+includeEmojis: true
+issueUrlFormat: https://github.com/myOrg/myRepo/issues/{0}
+listContributors: true
+maintainers:
+  - Your.Name
+projects:
+  - relativePath: src/path/to/project/folder
+    excludeFromChangelog:
+    language:
+    name: Example
+    projectFile:
+    # Auto-Generated: Please do not edit value.
+    releaseSha: ''
+    tagTemplate: ''
+    version: 0.0.0
+projectUrl: https://github.com/myOrg/myRepo.git
+releaseEmoji: ':rocket:'
+thankContributorText:
+trackNonMonoRepoProjectCommits: false
+userUrlFormat: https://github.com/{0}
+excludeFromChangelog:
+  - src/path/to/project/folder
+language:
+name: MyProject
+projectFile:
+# Auto-Generated: Please do not edit value.
+releaseSha: ''
+tagTemplate: ''
+version: ''

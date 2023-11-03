@@ -1,56 +1,32 @@
 using System;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Tonberry.Core.Model;
 
-public class TonberryVersion : IComparable, IComparable<TonberryVersion>, IEquatable<TonberryVersion>
+public partial class TonberryVersion : IComparable, IComparable<TonberryVersion>, IEquatable<TonberryVersion>
 {
-    private int? _releaseCandidateVersion = null;
+    public string Build { get; internal set; }
 
-    internal static TonberryVersion General = new(1, 0, 0);
+    public bool HasBuildLabel => !string.IsNullOrEmpty(Build);
 
-    internal static TonberryVersion None = new(0, 0, 0);
+    public bool IsGeneralRelease => Major > 0 && !IsPreRelease && !HasBuildLabel;
 
-    public string BuildLabel { get; internal set; }
+    public bool IsPreRelease => !string.IsNullOrEmpty(PreRelease);
 
-    public bool HasBuildLabel => !string.IsNullOrEmpty(BuildLabel);
+    public bool IsReleaseCandidate => IsPreRelease && PreRelease.StartsWith("rc");
 
-    public bool HasPreReleaseLabel => !string.IsNullOrEmpty(PreReleaseLabel);
+    public int Major => Version?.Major is not null ? Version.Major : 0;
 
-    public bool IsReleaseCandidate => !string.IsNullOrEmpty(PreReleaseLabel) && PreReleaseLabel.StartsWith("rc");
+    public int Minor => Version?.Minor is not null ? Version.Minor : 0;
 
-    public int Major => Version.Major;
+    public int Patch => Version?.Build is not null ? Version.Build : 0;
 
-    public int Minor => Version.Minor;
+    public string PreRelease { get; internal set; }
 
-    public int Patch => Version.Build;
+    public int? PreReleaseIteration => GetPreReleaseIteration();
 
-    public string PreReleaseLabel { get; internal set; }
-
-    internal int RCVersion
-    {
-        get
-        {
-            if (_releaseCandidateVersion is null && IsReleaseCandidate)
-            {
-                foreach (char separator in new[] { '.', '-' })
-                {
-                    if (PreReleaseLabel.Contains(separator))
-                    {
-                        var preReleaseSplit = PreReleaseLabel.Split(separator);
-                        if (int.TryParse(preReleaseSplit[1], out int releaseCandidateVersion))
-                        {
-                            _releaseCandidateVersion = releaseCandidateVersion;
-                            return _releaseCandidateVersion.Value;
-                        }
-                    }
-                }
-            }
-
-            return _releaseCandidateVersion.HasValue ? _releaseCandidateVersion.Value : 0;
-        }
-        set => _releaseCandidateVersion = value;
-    }
+    internal bool HasVersion => Major > 0 || Minor > 0 || Patch > 0;
 
     internal Version Version { get; set; }
 
@@ -58,72 +34,23 @@ public class TonberryVersion : IComparable, IComparable<TonberryVersion>, IEquat
 
     public TonberryVersion(int major, int minor) : this(major, minor, 0) { }
 
-    public TonberryVersion(int major, int minor, int patch)
+    public TonberryVersion(int major, int minor, int patch) : this()
     {
-        if (major < 0)
-        {
-            throw new ArgumentNullException(nameof(major));
-        }
-
-        if (minor < 0)
-        {
-            throw new ArgumentNullException(nameof(minor));
-        }
-
-        if (patch < 0)
-        {
-            throw new ArgumentNullException(nameof(patch));
-        }
-
+        Ensure.IsPositive(major, nameof(major));
+        Ensure.IsPositive(minor, nameof(minor));
+        Ensure.IsPositive(patch, nameof(patch));
         Version = new Version(major, minor, patch);
     }
 
-    public TonberryVersion(int major,
-                           int minor,
-                           int patch,
-                           string label) : this(major, minor, patch)
-    {
-        if (!string.IsNullOrEmpty(label))
-        {
-            PreReleaseLabel = GitUtil.SemanticLabelRegex()
-                                     .IsMatch(label) ? label : throw new FormatException(nameof(label));
-        }
-    }
-
-    public TonberryVersion(int major,
-                           int minor,
-                           int patch,
-                           string preRelease,
-                           string build) : this(major, minor, patch)
-    {
-        if (!string.IsNullOrEmpty(build))
-        {
-            BuildLabel = GitUtil.SemanticUnitRegex()
-                                .IsMatch(build) ? build : throw new FormatException(nameof(build));
-        }
-
-        if (!string.IsNullOrEmpty(preRelease))
-        {
-            PreReleaseLabel = GitUtil.SemanticUnitRegex()
-                                     .IsMatch(preRelease) ? preRelease : throw new FormatException(nameof(preRelease));
-        }
-    }
+    public TonberryVersion(string version) => Parse(version);
 
     public TonberryVersion(Version version)
     {
-        if (version == null)
-        {
-            throw new ArgumentNullException(nameof(version));
-        }
-
-        Version = new Version(version.Major, version.Minor, version.Build == -1 ? 0 : version.Build);
+        Ensure.ValueNotNull(version, nameof(version));
+        Version = new Version(version.Major, version.Minor, version.Build < 0 ? 0 : version.Build);
     }
 
-    private TonberryVersion(Version version, string build, string preRelease) : this(version)
-    {
-        BuildLabel = build;
-        PreReleaseLabel = preRelease;
-    }
+    internal TonberryVersion() { }
 
     public int CompareTo(object obj)
     {
@@ -132,11 +59,7 @@ public class TonberryVersion : IComparable, IComparable<TonberryVersion>, IEquat
             return 1;
         }
 
-        if (obj is not TonberryVersion version)
-        {
-            throw new ArgumentException(null, nameof(obj));
-        }
-
+        Ensure.ValueIsOfType(obj, nameof(obj), out TonberryVersion version);
         return CompareTo(version);
     }
 
@@ -149,87 +72,96 @@ public class TonberryVersion : IComparable, IComparable<TonberryVersion>, IEquat
 
         if (Major != other.Major)
         {
-            return Major > other.Major ? 1 : -1;
+            return Major.CompareTo(other.Major);
         }
 
         if (Minor != other.Minor)
         {
-            return Minor > other.Minor ? 1 : -1;
+            return Minor.CompareTo(other.Minor);
         }
 
         if (Patch != other.Patch)
         {
-            return Patch > other.Patch ? 1 : -1;
+            return Patch.CompareTo(other.Patch);
         }
 
-        if (IsReleaseCandidate && other.IsReleaseCandidate && RCVersion != other.RCVersion)
-        {
-            return RCVersion > other.RCVersion ? 1 : -1;
-        }
-
-        return CompareLabels(other.PreReleaseLabel);
+        return ComparePreRelease(other.PreRelease, other.Build);
     }
 
     public bool Equals(TonberryVersion other)
-        => other is not null
+         => other is not null
            && (Major == other.Major)
            && (Minor == other.Minor)
            && (Patch == other.Patch)
-           && string.Equals(PreReleaseLabel, other.PreReleaseLabel, StringComparison.Ordinal);
+           && string.Equals(PreRelease, other.PreRelease, Resources.StrCompare)
+           && string.Equals(Build, other.Build, Resources.StrCompare);
 
-    public void RemoveLabels()
+    public override bool Equals(object obj)
     {
-        BuildLabel = string.Empty;
-        PreReleaseLabel = string.Empty;
+        if (obj is null)
+        {
+            return false;
+        }
+
+        Ensure.ValueIsOfType(obj, nameof(obj), out TonberryVersion version);
+        return Equals(version);
     }
 
-    public override bool Equals(object obj) => Equals(obj as TonberryVersion);
-
-    public override int GetHashCode() => HashCode.Combine(Major, Minor, Patch, PreReleaseLabel, BuildLabel);
+    public override int GetHashCode() => HashCode.Combine(Major, Minor, Patch, PreRelease, Build);
 
     public override string ToString()
     {
         var sb = new StringBuilder();
         sb.Append(Version.ToString(3));
-        if (HasPreReleaseLabel)
+        if (IsPreRelease)
         {
-            sb.Append("-" + PreReleaseLabel);
+            sb.Append("-" + PreRelease);
         }
 
         if (HasBuildLabel)
         {
-            sb.Append("+" + BuildLabel);
+            sb.Append("+" + Build);
         }
 
         return sb.ToString();
     }
 
-    public static int CompareTo(TonberryVersion reference, TonberryVersion compare)
+    public static int CompareTo(TonberryVersion reference, TonberryVersion comparison)
+        => reference is not null ? reference.CompareTo(comparison) : comparison is not null ? -1 : 0;
+
+    public static TonberryVersion Parse(string value)
     {
-        if (reference != null)
-        {
-            return reference.CompareTo(compare);
-        }
-
-        if (compare != null)
-        {
-            return -1;
-        }
-
-        return 0;
+        Ensure.StringNotNullOrEmpty(value, nameof(value));
+        return TryParse(value, out TonberryVersion version) ? version : null;
     }
 
-    public static TonberryVersion Parse(string versionStr)
+    public static bool TryParse(string value, out TonberryVersion version)
     {
-        if (string.IsNullOrEmpty(versionStr))
+        version = null;
+        Ensure.StringNotNullOrEmpty(value, nameof(value));
+        Ensure.StringDoesNotEndWith(value, ['.', '+', '-'], nameof(value));
+        Match match = SemanticVersion().Match(value);
+        if (match.Success)
         {
-            throw new ArgumentNullException(nameof(versionStr));
+            var major = int.Parse(match.Groups["major"].Value);
+            var minor = int.Parse(match.Groups["minor"].Value);
+            var patch = int.Parse(match.Groups["patch"].Value);
+            version = new TonberryVersion(major, minor, patch);
+            if (match.Groups["prerelease"].Success)
+            {
+                version.PreRelease = match.Groups["prerelease"].Value;
+            }
+
+            if (match.Groups["buildmetadata"].Success)
+            {
+                version.Build = match.Groups["buildmetadata"].Value;
+            }
+
+            return true;
         }
 
-        return TryParse(versionStr, out TonberryVersion version, out Exception ex) ? version : throw ex;
+        return false;
     }
-
-    public static bool TryParse(string versionStr, out TonberryVersion version) => TryParse(versionStr, out version, out _);
 
     public static bool operator ==(TonberryVersion reference, TonberryVersion compare)
         => reference is null ? compare is null : reference.Equals(compare);
@@ -248,133 +180,243 @@ public class TonberryVersion : IComparable, IComparable<TonberryVersion>, IEquat
 
     public static implicit operator Version(TonberryVersion version) => version.Version;
 
-    private int CompareLabels(string comparison)
+    private int CompareBuild(string build)
     {
-        if (string.IsNullOrEmpty(PreReleaseLabel))
+        var compareBuildNull = string.IsNullOrEmpty(build);
+        var thisBuildNull = string.IsNullOrEmpty(Build);
+        if (thisBuildNull && compareBuildNull)
         {
-            return string.IsNullOrEmpty(comparison) ? 0 : 1;
+            return 0;
         }
-
-        if (string.IsNullOrEmpty(comparison))
+        else if (thisBuildNull && !compareBuildNull)
+        {
+            return 1;
+        }
+        else if (!thisBuildNull && compareBuildNull)
         {
             return -1;
         }
-
-        var preReleaseSplit = PreReleaseLabel.Split('.');
-        var comparisonSplit = comparison.Split('.');
-        var iterations = preReleaseSplit.Length < comparisonSplit.Length ? preReleaseSplit.Length : comparisonSplit.Length;
-        for (int i = 0; i < iterations; i++)
+        else
         {
-            var preReleasePart = preReleaseSplit[i];
-            var comparisonPart = comparisonSplit[i];
-            bool isPreReleasePartNumber = int.TryParse(preReleasePart, out int preReleasePartNumber);
-            bool isComparisonPartNumber = int.TryParse(comparisonPart, out int comparisonPartNumber);
-            if (isPreReleasePartNumber && isComparisonPartNumber)
+            var thisSplit = Build.Split('.');
+            var compareSplit = build.Split('.');
+            var minimum = thisSplit.Length < compareSplit.Length ? thisSplit.Length : compareSplit.Length;
+            for (int i = 0; i < minimum; i++)
             {
-                if (preReleasePartNumber != comparisonPartNumber)
+                var comparison = compareSplit[i];
+                var reference = thisSplit[i];
+                var compareIsNumeric = int.TryParse(comparison, out int compareNumber);
+                var refIsNumeric = int.TryParse(reference, out int refNumber);
+                if (refIsNumeric && compareIsNumeric)
                 {
-                    return preReleasePartNumber < comparisonPartNumber ? -1 : 1;
+                    if (refNumber != compareNumber)
+                    {
+                        return refNumber.CompareTo(compareNumber);
+                    }
                 }
-            }
-            else if (preReleasePart.Equals("rc") && !comparisonPartNumber.Equals("rc"))
-            {
-                return 1;
-            }
-            else if (!preReleasePart.Equals("rc") && comparisonPartNumber.Equals("rc"))
-            {
-                return -1;
-            }
-            else
-            {
-                if (isPreReleasePartNumber)
+                else if (refIsNumeric)
                 {
                     return -1;
                 }
-
-                if (isComparisonPartNumber)
+                else if (compareIsNumeric)
                 {
                     return 1;
                 }
-
-                int stringComparisonResult = string.CompareOrdinal(preReleasePart, comparisonPart);
-                if (stringComparisonResult != 0)
+                else
                 {
-                    return stringComparisonResult;
+                    int stringCompare = string.CompareOrdinal(reference, comparison);
+                    if (stringCompare != 0)
+                    {
+                        return stringCompare;
+                    }
                 }
             }
-        }
 
-        return preReleaseSplit.Length.CompareTo(comparisonSplit.Length);
+            return thisSplit.Length.CompareTo(compareSplit.Length);
+        }
     }
 
-    private static bool TryParse(string versionStr, out TonberryVersion version, out Exception ex)
+    private int ComparePreRelease(string preRelease, string build)
     {
-        ex = null;
-        version = null;
-        if (versionStr is null)
+        var compareBuildNull = string.IsNullOrEmpty(build);
+        var comparePreReleaseNull = string.IsNullOrEmpty(preRelease);
+        var thisBuildNull = string.IsNullOrEmpty(Build);
+        var thisPreReleaseNull = string.IsNullOrEmpty(PreRelease);
+        if (thisPreReleaseNull && comparePreReleaseNull)
         {
-            return false;
-        }
-
-        if (versionStr.EndsWith('.') || versionStr.EndsWith('+') || versionStr.EndsWith('-'))
-        {
-            ex = new FormatException(nameof(versionStr));
-            return false;
-        }
-
-        string buildLabel = string.Empty;
-        string preReleaseLabel = string.Empty;
-        string standardVersion;
-        int hyphenIndex = versionStr.IndexOf('-');
-        int plusIndex = versionStr.IndexOf('+');
-        if (hyphenIndex > plusIndex)
-        {
-            if (plusIndex == -1)
+            if (!compareBuildNull || !thisBuildNull)
             {
-                preReleaseLabel = versionStr[(hyphenIndex + 1)..];
-                standardVersion = versionStr[0..hyphenIndex];
+                return CompareBuild(build);
+            }
+
+            return 0;
+        }
+        else if (thisPreReleaseNull && !comparePreReleaseNull)
+        {
+            return 1;
+        }
+        else if (!thisPreReleaseNull && comparePreReleaseNull)
+        {
+            return -1;
+        }
+        else
+        {
+            var thisSplit = PreRelease.Split('.');
+            var compareSplit = preRelease.Split('.');
+            var minimum = thisSplit.Length < compareSplit.Length ? thisSplit.Length : compareSplit.Length;
+            for (int i = 0; i < minimum; i++)
+            {
+                var comparison = compareSplit[i];
+                var reference = thisSplit[i];
+                var compareIsNumeric = int.TryParse(comparison, out int compareNumber);
+                var refIsNumeric = int.TryParse(reference, out int refNumber);
+                if (refIsNumeric && compareIsNumeric)
+                {
+                    if (refNumber != compareNumber)
+                    {
+                        return refNumber.CompareTo(compareNumber);
+                    }
+                }
+                else if (reference.Equals("rc", Resources.StrCompare) && !comparison.Equals("rc", Resources.StrCompare))
+                {
+                    return 1;
+                }
+                else if (!reference.Equals("rc", Resources.StrCompare) && comparison.Equals("rc", Resources.StrCompare))
+                {
+                    return -1;
+                }
+                else
+                {
+                    if (refIsNumeric)
+                    {
+                        return -1;
+                    }
+
+                    if (compareIsNumeric)
+                    {
+                        return 1;
+                    }
+
+                    int stringCompare = string.CompareOrdinal(reference, comparison);
+                    if (stringCompare != 0)
+                    {
+                        return stringCompare;
+                    }
+                }
+            }
+
+            if (!compareBuildNull || !thisBuildNull)
+            {
+                return CompareBuild(build);
+            }
+
+            return thisSplit.Length.CompareTo(compareSplit.Length);
+        }
+    }
+
+    private TonberryVersion GetNext(bool bumpMajor,
+                                    bool bumpMinor,
+                                    bool hasNewFeatures,
+                                    bool isBreaking,
+                                    string buildLabel,
+                                    string releaseLabel)
+    {
+        TonberryVersion next = null;
+        if (!IsPreRelease)
+        {
+            if ((isBreaking && IsGeneralRelease) || bumpMajor)
+            {
+                next = new(Major + 1, 0, 0);
+            }
+            else if ((isBreaking && !IsGeneralRelease)
+                     || (hasNewFeatures && IsGeneralRelease)
+                     || bumpMinor)
+            {
+                next = new(Major, Minor + 1, 0);
             }
             else
             {
-                buildLabel = versionStr[(plusIndex + 1)..];
-                hyphenIndex = -1;
-                standardVersion = versionStr[0..plusIndex];
+                next = new(Major, Minor, Patch + 1);
             }
         }
         else
         {
-            if (plusIndex == -1)
-            {
-                standardVersion = versionStr;
-            }
-            else if (hyphenIndex == -1)
-            {
-                buildLabel = versionStr[(plusIndex + 1)..];
-                standardVersion = versionStr[0..plusIndex];
-            }
-            else
-            {
-                buildLabel = versionStr[(plusIndex + 1)..];
-                preReleaseLabel = versionStr[(hyphenIndex + 1)..(plusIndex - hyphenIndex - 1)];
-                standardVersion = versionStr[0..hyphenIndex];
-            }
+            next = new(Major, Minor, Patch);
         }
 
-        if ((hyphenIndex != -1 && string.IsNullOrEmpty(preReleaseLabel))
-            || (plusIndex != -1 && string.IsNullOrEmpty(buildLabel))
-            || string.IsNullOrEmpty(standardVersion))
-        {
-            ex = new FormatException(nameof(versionStr));
-            return false;
-        }
-
-        if (!Version.TryParse(standardVersion, out Version tempVersion))
-        {
-            ex = new FormatException(nameof(standardVersion));
-            return false;
-        }
-
-        version = new TonberryVersion(tempVersion, buildLabel, preReleaseLabel);
-        return true;
+        next.Build = Ensure.StringHasValue(buildLabel, string.Empty);
+        next.PreRelease = GetNextLabel(PreRelease, releaseLabel);
+        return next;
     }
+
+    private int? GetPreReleaseIteration() => IsPreRelease ? TryGetIteration(PreRelease, out _) : null;
+
+    private static string GetNextLabel(string label, string nextLabel)
+    {
+        if (!string.IsNullOrEmpty(nextLabel))
+        {
+            int currentIteration = TryGetIteration(label, out int index);
+            if (!string.IsNullOrEmpty(label))
+            {
+                string currentLabel = label.Substring(0, index + 1);
+                if (currentLabel.Equals(nextLabel))
+                {
+                    return currentLabel + (currentIteration + 1);
+                }
+            }
+
+            return nextLabel + "." + currentIteration;
+        }
+
+        return string.Empty;
+    }
+
+    private static int TryGetIteration(string label, out int index)
+    {
+        index = -1;
+        var dotIndex = label.LastIndexOf('.');
+        var hyphenIndex = label.LastIndexOf('-');
+        var segment = string.Empty;
+        if (dotIndex > hyphenIndex && dotIndex > 0)
+        {
+            index = dotIndex;
+            segment = label.Substring(dotIndex + 1);
+        }
+
+        if (hyphenIndex > dotIndex && hyphenIndex > 0)
+        {
+            index = hyphenIndex;
+            segment = label.Substring(hyphenIndex + 1);
+        }
+
+        return int.TryParse(segment, out int iteration) ? iteration : 0;
+    }
+
+    internal TonberryVersion GetNextIteration(TonberryChangelogOptions options,
+                                              bool hasNewFeatures,
+                                              bool isBreaking,
+                                              TonberryVersion configVersion)
+    {
+        TonberryVersion next;
+        if (options is TonberryReleaseOptions ro)
+        {
+            next = GetNext(ro.BumpMajor, ro.BumpMinor, hasNewFeatures, isBreaking, ro.Build, ro.PreRelease);
+        }
+        else if (options is TonberryNewOptions no && configVersion.HasVersion)
+        {
+            next = configVersion;
+            next.Build = Ensure.StringHasValue(next.Build, GetNextLabel(string.Empty, no.Build));
+            next.PreRelease = Ensure.StringHasValue(next.Build, GetNextLabel(string.Empty, no.PreRelease));
+        }
+        else
+        {
+            next = GetNext(false, false, hasNewFeatures, isBreaking, string.Empty, string.Empty);
+        }
+
+        return next;
+    }
+
+    // Try the regex here: https://regex101.com/r/XFJZ9E/1
+    [GeneratedRegex(@"^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:-(?<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$")]
+    internal static partial Regex SemanticVersion();
 }

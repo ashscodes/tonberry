@@ -1,13 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
-using System.Linq;
-using Tonberry.Core.Command.Options;
-using Tonberry.Core.Internal;
-using Tonberry.Core.Yaml;
 using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace Tonberry.Core.Model;
 
@@ -15,7 +9,7 @@ public class TonberryConfiguration : BaseConfiguration
 {
     [Required]
     [YamlMember(Alias = "commitTypes", ApplyNamingConventions = false)]
-    public List<TonberryCommitConfiguration> CommitTypes { get; set; }
+    public List<TonberryCommitType> CommitTypes { get; set; }
 
     [Required]
     [YamlMember(Alias = "commitUrlFormat", ApplyNamingConventions = false)]
@@ -25,9 +19,6 @@ public class TonberryConfiguration : BaseConfiguration
     [YamlMember(Alias = "compareUrlFormat", ApplyNamingConventions = false)]
     public string CompareUrlFormat { get; set; } = "https://<host>/<path>/<projectName>/compare/{0}...{1}";
 
-    [YamlMember(Alias = "excludeFromChangelog", ApplyNamingConventions = false)]
-    public List<string> Exclusions { get; set; }
-
     [Required]
     [YamlMember(Alias = "includeEmojis", ApplyNamingConventions = false)]
     public bool IncludeEmojis { get; set; } = true;
@@ -36,11 +27,11 @@ public class TonberryConfiguration : BaseConfiguration
     [YamlMember(Alias = "issueUrlFormat", ApplyNamingConventions = false)]
     public string IssueUrlFormat { get; set; } = "https://<host>/<path>/<projectName>/issues/{0}";
 
-    public List<string> Maintainers { get; set; }
-
     [Required]
-    [YamlMember(Alias = "primaryLanguage", ApplyNamingConventions = false)]
-    public string PrimaryLanguage { get; set; }
+    [YamlMember(Alias = "listContributors", ApplyNamingConventions = false)]
+    public bool ListContributors { get; set; } = true;
+
+    public List<string> Maintainers { get; set; }
 
     public List<TonberryProjectConfiguration> Projects { get; set; } = [new("Example")];
 
@@ -50,10 +41,6 @@ public class TonberryConfiguration : BaseConfiguration
 
     [YamlMember(Alias = "releaseEmoji", ApplyNamingConventions = false)]
     public string ReleaseEmoji { get; set; } = ":rocket:";
-
-    [Required]
-    [YamlMember(Alias = "thankContributors", ApplyNamingConventions = false)]
-    public bool ThankContributors { get; set; } = true;
 
     [YamlMember(Alias = "thankContributorText", ApplyNamingConventions = false)]
     public string ThankContributorText { get; set; }
@@ -71,119 +58,56 @@ public class TonberryConfiguration : BaseConfiguration
 
     public TonberryConfiguration() : base() { }
 
-    protected TonberryConfiguration(DirectoryInfo directory) : this() => Validate(directory);
+    public TonberryConfiguration(DirectoryInfo directory) : base(directory) { }
 
-    protected TonberryConfiguration(DirectoryInfo directory,
-                                    TonberryInitOptions options) : this(directory) => Initialise(options);
-
-    public override string ToString() => GetYamlSerialiser().Serialize(this);
-
-    public override void Validate(DirectoryInfo directory)
-    {
-        Directory = directory;
-        Changelog = Directory?.FindOrCreateFile(Resources.ChangelogFile, false);
-        Configuration = new FileInfo(Path.Combine(Directory.FullName, Resources.TonberryRootConfig));
-        if (IsMonoRepo)
-        {
-            foreach (var project in Projects)
-            {
-                project.Validate(Directory);
-            }
-        }
-    }
+    public override string ToString() => Util.GetYamlSerializer().Serialize(this);
 
     public virtual void Save() => File.WriteAllText(Configuration.FullName, ToString());
+}
 
-    public static TonberryConfiguration Read(FileSystemInfo file)
-    {
-        var config = file is FileInfo fileInfo ?
-            fileInfo : new(Path.Combine(file.FullName, Resources.TonberryRootConfig));
+public class TonberryProjectConfiguration : BaseConfiguration
+{
+    [Required]
+    [YamlMember(Alias = "relativePath", ApplyNamingConventions = false)]
+    public string RelativePath { get; set; } = Resources.MonoRepoPathExample;
 
-        Ensure.IsTrue(config.Exists, Resources.RootConfigNotFound);
-        var contents = File.ReadAllText(config.FullName);
-        Ensure.StringNotNullOrEmpty(contents, Resources.RootConfigNotFound);
-        using var reader = new StringReader(contents);
-        return GetYamlDeserializer().Deserialize<TonberryConfiguration>(reader);
-    }
+    internal TonberryProjectConfiguration() : base() { }
 
-    private void Initialise(TonberryInitOptions options)
-    {
-        CommitTypes ??= TonberryCommitConfiguration.GetDefault();
-        Maintainers = ["Your.Email"];
-        Name = options.Name;
-        Version = options.Version;
-        if (options.Repository is not null)
-        {
-            CommitUrlFormat = options.Repository.AbsoluteUri + "/commit/{0}";
-            CompareUrlFormat = options.Repository.AbsoluteUri + "/compare/{0}...{1}";
-            IssueUrlFormat = options.Repository.AbsoluteUri + "/issues/{0}";
-            ProjectUrlFormat = options.Repository.AbsoluteUri + ".git";
-            UserUrlFormat = options.Repository.Scheme + "://" + options.Repository.Host + "/{0}";
-        }
-    }
+    internal TonberryProjectConfiguration(string name) : base(name) { }
+}
 
-    protected internal override bool TryUpdateProjectFiles() => throw new NotImplementedException();
+public abstract class BaseConfiguration
+{
+    [YamlMember(Alias = "excludeFromChangelog", ApplyNamingConventions = false)]
+    public List<string> Exclusions { get; set; }
 
-    protected internal static IDeserializer GetYamlDeserializer() => new DeserializerBuilder()
-        .WithNamingConvention(CamelCaseNamingConvention.Instance)
-        .WithRequiredPropertyValidation()
-        .WithTypeConverter(new TonberryVersionConverter())
-        .IgnoreUnmatchedProperties()
-        .Build();
+    public string Language { get; set; }
 
-    protected internal static ISerializer GetYamlSerialiser() => new SerializerBuilder()
-        .WithNamingConvention(CamelCaseNamingConvention.Instance)
-        .WithTypeConverter(new TonberryVersionConverter())
-        .Build();
+    [Required]
+    public string Name { get; set; }
 
-    internal bool ContainsProject(string name)
-        => Name.Equals(name, Resources.StrCompare) || Projects.Any(p => p.Name.Equals(name, Resources.StrCompare));
+    [YamlMember(Alias = "projectFile", ApplyNamingConventions = false)]
+    public string ProjectFile { get; set; }
 
-    internal FileInfo GetChangelog(string projectName)
-    {
-        if (projectName.Equals(Name, Resources.StrCompare))
-        {
-            return Changelog;
-        }
+    [YamlMember(Alias = "releaseSha", ApplyNamingConventions = false, Description = Resources.ShaConfigMessage)]
+    public string ReleaseSha { get; internal set; } = string.Empty;
 
-        return Projects?.FirstOrDefault(ct => ct.Name.Equals(projectName,
-                                                             Resources.StrCompare))?.Changelog;
-    }
+    [YamlMember(Alias = "tagTemplate", ApplyNamingConventions = false)]
+    public string TagTemplate { get; internal set; } = string.Empty;
 
-    internal TonberryCommitConfiguration GetCommitType(string name)
-        => CommitTypes.FirstOrDefault(c => c.Name.Equals(name, Resources.StrCompare));
+    public TonberryVersion Version { get; set; } = new TonberryVersion(0, 0, 0);
 
-    internal string GetEmoji(string name = null)
-    {
-        if (IncludeEmojis)
-        {
-            if (!string.IsNullOrEmpty(name))
-            {
-                var commitType = CommitTypes.FirstOrDefault(ct => ct.Name.Equals(name, Resources.StrCompare));
-                return commitType is null ? string.Empty : commitType.GetEmoji();
-            }
+    internal FileInfo Changelog { get; set; }
 
-            return Ensure.StringHasValue(ReleaseEmoji, string.Empty);
-        }
+    internal DirectoryInfo Directory { get; set; }
 
-        return string.Empty;
-    }
+    internal bool HasExclusions => Exclusions is not null && Exclusions.Count > 0;
 
-    internal bool IsMaintainer(string name)
-        => Maintainers is not null && Maintainers.Any(m => m.Equals(name, Resources.StrCompare));
+    internal TonberryRepository Repository { get; set; }
 
-    internal void UpdateVersion(string projectName, TonberryVersion version)
-    {
-        if (projectName.Equals(Name, Resources.StrCompare))
-        {
-            Version = version;
-            return;
-        }
+    internal BaseConfiguration() { }
 
-        var project = Projects?.FirstOrDefault(p => p.Name.Equals(projectName, Resources.StrCompare));
-        if (project is not null)
-        {
-            project.Version = version;
-        }
-    }
+    internal BaseConfiguration(string name) => Name = name;
+
+    internal BaseConfiguration(DirectoryInfo directory) => Directory = directory;
 }
