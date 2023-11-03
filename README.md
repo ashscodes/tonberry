@@ -54,9 +54,11 @@ The default tags will be:
 
 ## Dependencies
 
-| Project | Dependecies |
+Thanks to all the cool projects that have made this possible. You can check them our and their licenses below.
+
+| Project | Dependencies |
 | --- | --- |
-| [Tonberry.Core]() | [LibGit2Sharp](https://github.com/libgit2/libgit2sharp) - [MITLicense](https://github.com/libgit2/libgit2sharp/blob/master/LICENSE.md) |
+| [Tonberry.Core](src/Tonberry.Core/) | [LibGit2Sharp](https://github.com/libgit2/libgit2sharp) - [MITLicense](https://github.com/libgit2/libgit2sharp/blob/master/LICENSE.md) |
 
 ## Future Ideas
 
