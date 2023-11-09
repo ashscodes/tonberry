@@ -126,21 +126,24 @@ internal static class Util
 
     internal static void OpenFile(FileInfo file, string app = null)
     {
-        using (Process process = new Process())
+        if (file is not null && file.Exists)
         {
-            if (string.IsNullOrEmpty(app))
+            using (Process process = new Process())
             {
-                process.StartInfo.FileName = file.FullName;
-            }
-            else
-            {
-                process.StartInfo.Arguments = file.FullName;
-                process.StartInfo.FileName = app;
-            }
+                if (string.IsNullOrEmpty(app))
+                {
+                    process.StartInfo.FileName = file.FullName;
+                }
+                else
+                {
+                    process.StartInfo.Arguments = file.FullName;
+                    process.StartInfo.FileName = app;
+                }
 
-            process.StartInfo.CreateNoWindow = true;
-            process.StartInfo.UseShellExecute = true;
-            process.Start();
+                process.StartInfo.CreateNoWindow = true;
+                process.StartInfo.UseShellExecute = true;
+                process.Start();
+            }
         }
     }
 }

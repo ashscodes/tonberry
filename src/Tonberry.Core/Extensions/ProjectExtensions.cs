@@ -1,35 +1,53 @@
+using System.IO;
 using Tonberry.Core.Model;
 
 namespace Tonberry.Core;
 
 internal static class ProjectExtensions
 {
-    public static TonberryProjectCollection GetProjects<T>(this TonberryProjectCollection projects,
-                                                           TonberryChangelogCommand<T> command) where T : TonberryChangelogOptions, new()
+    public static TonberryResultCollection Process(this TonberryProjectCollection projects,
+                                                   TonberryConfiguration config,
+                                                   TonberryChangelogOptions options)
     {
-        command.Config.Init();
-        TonberryTagCollection tags = command.Config.GetTags();
-        command.Config.Close();
-        Ensure.IsFalse(tags.IsMonoRepo && !command.Config.IsMonoRepo, Resources.NoProjectsDefined);
-        switch (tags.Count)
+        var results = new TonberryResultCollection();
+        bool success = false;
+        foreach (var project in projects)
         {
-            case int x when x == 0 && command.Config.IsMonoRepo:
-                projects.GetUntaggedProjects(command.Config);
-                break;
-            case int x when x == 0 && !command.Config.IsMonoRepo:
-                projects.GetUntaggedProject(command.Config);
-                break;
-            case int x when x > 0 && command.Config.IsMonoRepo:
-                projects.GetTaggedProjects(command.Config, tags, (typeof(T) == typeof(TonberryReleaseOptions)));
-                break;
-            case int x when x > 0 && !command.Config.IsMonoRepo:
-                projects.GetTaggedProject(command.Config, tags, (typeof(T) == typeof(TonberryReleaseOptions)));
-                break;
-            default:
-                break;
+            BaseConfiguration currentConfig = config.GetProjectConfig(project.Name);
+            if (currentConfig is null)
+            {
+                var ex = new TonberryApplicationException(Resources.NoProjectDefined, project.Name);
+                results.Add(new TonberryFileResult(project.Name, ex));
+                continue;
+            }
+
+            TonberryFileResult result = null;
+            var releases = project.GetReleases();
+            releases.GetNewTag(options, config.Version);
+            if (options is TonberryReleaseOptions releaseOptions && releaseOptions.VersionOnly)
+            {
+                result = new TonberryFileResult(config.Changelog, project.Name, null, releases.Current.Version);
+                success = true;
+            }
+            else
+            {
+                success = releases.TryWrite(config, options, out FileInfo output);
+                result = new TonberryFileResult(config.Changelog, project.Name, output, releases.Current.Version);
+                if (!options.IsPreview && releases.First is not null)
+                {
+                    result.Write();
+                    result.Success = success && config.TryAddRelease(releases.First);
+                    if (result.Success)
+                    {
+                        config.ReleaseSha = releases.First.LatestCommit.Id;
+                    }
+                }
+            }
+
+            results.Add(result);
         }
 
-        return projects;
+        return results;
     }
 
     public static TonberryReleaseCollection GetReleases(this TonberryProject project)
@@ -48,7 +66,7 @@ internal static class ProjectExtensions
         return releaseCollection;
     }
 
-    private static void GetTaggedProject(this TonberryProjectCollection projects,
+    internal static void GetTaggedProject(this TonberryProjectCollection projects,
                                          BaseConfiguration config,
                                          TonberryTagCollection tags,
                                          bool isNewRelease)
@@ -64,7 +82,7 @@ internal static class ProjectExtensions
         projects.Add(project);
     }
 
-    private static void GetTaggedProjects(this TonberryProjectCollection projects,
+    internal static void GetTaggedProjects(this TonberryProjectCollection projects,
                                          TonberryConfiguration config,
                                          TonberryTagCollection tags,
                                          bool isNewRelease)
@@ -82,7 +100,7 @@ internal static class ProjectExtensions
         }
     }
 
-    private static void GetUntaggedProject(this TonberryProjectCollection projects, BaseConfiguration config)
+    internal static void GetUntaggedProject(this TonberryProjectCollection projects, BaseConfiguration config)
     {
         config.Init();
         var project = new TonberryProject(config.Name) { config.GetAllCommits() };
@@ -90,7 +108,7 @@ internal static class ProjectExtensions
         config.Close();
     }
 
-    private static void GetUntaggedProjects(this TonberryProjectCollection projects, TonberryConfiguration config)
+    internal static void GetUntaggedProjects(this TonberryProjectCollection projects, TonberryConfiguration config)
     {
         foreach (var project in config.Projects)
         {

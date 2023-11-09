@@ -75,4 +75,6 @@ internal static class Resources
     public const string TonberryRootConfig = "tonberry.config.yml";
 
     public const string UnexpectedType = "Could not process the object of type '{0}'. The expected type is '{1}'.";
+
+    public const string VersionMarkdownRow = "| {0} | {1} |";
 }

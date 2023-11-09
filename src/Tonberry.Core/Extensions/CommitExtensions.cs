@@ -7,6 +7,41 @@ namespace Tonberry.Core;
 
 internal static class CommitExtensions
 {
+    public static TonberryResult Process(this TonberryCommit commit,
+                                         TonberryConfiguration config,
+                                         TonberryCommitOptions options)
+    {
+        config.Init();
+        var message = commit.ToString();
+        if (!config.HasStagedFiles())
+        {
+            try
+            {
+                Ensure.IsTrue(options.StageAll, Resources.NoStagedFiles);
+            }
+            catch (TonberryApplicationException ex)
+            {
+                config.Close();
+                return new TonberryCommitResult(config.GetCommitPreview(message), ex);
+            }
+
+            config.Repository.StageAll();
+        }
+
+        if (!options.IsPreview)
+        {
+            config.Repository.Commit(message);
+            if (options.Push)
+            {
+                config.Repository.TrackRemoteBranch();
+                config.Repository.Push();
+            }
+        }
+
+        config.Close();
+        return new TonberryCommitResult("commit", config.GetCommitPreview(message), true);
+    }
+
     public static IEnumerable<TonberryCommit> GetCommits(this ICommitLog commitLog, BaseConfiguration config)
     {
         if (commitLog is null)

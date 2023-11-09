@@ -2,97 +2,132 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Tonberry.Core.Model;
 
-public class TonberryCommitResult : ITonberryResult<string>
+public class TonberryCommitResult : TonberryResult
 {
-    public string Item { get; }
+    private string _output;
 
-    public string Output { get; }
+    public TonberryCommitResult() : base() { }
 
-    public bool Success { get; }
+    public TonberryCommitResult(string item) : base(item) { }
 
-    public TonberryCommitResult(string item, string output, bool success)
+    public TonberryCommitResult(string item, Exception exception) : base(item, exception) { }
+
+    public TonberryCommitResult(string item, string output, bool success) : this(item)
     {
-        Item = item;
-        Output = output;
+        _output = output;
         Success = success;
     }
 
-    public virtual void Open() => WriteInConsole();
+    public override string GetResult() => _output;
 
-    public virtual void Write() => WriteInConsole();
+    public override void Open() => WriteInConsole();
 
-    public virtual void WriteInConsole() => Console.WriteLine(Output);
+    public override void Write() => WriteInConsole();
+
+    public override void WriteInConsole() => Console.WriteLine(_output);
 }
 
-public class TonberryFileResult : ITonberryResult<FileInfo>
+public class TonberryFileResult : TonberryResult
 {
-    public FileInfo CurrentLog { get; }
+    private FileInfo _currentLog;
 
-    public Exception Error { get; }
-
-    public string Item { get; }
-
-    public FileInfo Output { get; }
-
-    public bool Success { get; internal set; }
+    private FileInfo _output;
 
     public TonberryVersion Version { get; }
 
-    public TonberryFileResult(Exception exception, string item)
-    {
-        Error = exception;
-        Item = item;
-    }
+    public TonberryFileResult(string item, Exception exception) : base(item, exception) { }
 
-    public TonberryFileResult(FileInfo currentLog, string item, FileInfo output, TonberryVersion version)
+    public TonberryFileResult(FileInfo currentLog, string item, FileInfo output, TonberryVersion version) : base(item)
     {
-        CurrentLog = currentLog;
+        _currentLog = currentLog;
         Item = item;
-        Output = output;
+        _output = output;
         Version = version;
-        if (Output is not null && Output.Exists)
+        if (_output is not null && _output.Exists)
         {
-            Path.ChangeExtension(output.FullName, ".md");
+            Path.ChangeExtension(_output.FullName, ".md");
         }
     }
 
-    public virtual void Open()
+    public override FileInfo GetResult() => _output;
+
+    public override void Open()
     {
-        if (Output is not null && Output.Exists)
+        if (_output is not null && _output.Exists)
         {
-            Util.OpenFile(Output);
+            Util.OpenFile(_output);
         }
     }
 
-    public virtual void Write()
+    public override void Write()
     {
-        if (CurrentLog is not null && Output is not null && Output.Exists)
+        if (_currentLog is not null && _output is not null && _output.Exists)
         {
-            File.Move(Output.FullName, CurrentLog.FullName, true);
+            File.Move(_output.FullName, _currentLog.FullName, true);
         }
     }
 
-    public virtual void WriteInConsole()
+    public override void WriteInConsole()
     {
         if (Version is not null)
         {
             Console.WriteLine(Version);
         }
     }
+
+    public void WriteVersionAsMarkdown()
+    {
+        if (Version is not null)
+        {
+            Console.WriteLine(Resources.VersionMarkdownRow);
+        }
+    }
 }
 
-public class TonberryResultCollection<T> : ICollection<ITonberryResult<T>>
+public class TonberryInitResult : TonberryResult
 {
-    private readonly List<ITonberryResult<T>> _results = [];
+    private TonberryConfiguration _output;
+
+    public TonberryInitResult() : base(Resources.TonberryRootConfig) { }
+
+    public TonberryInitResult(Exception exception) : base(Resources.TonberryRootConfig, exception) { }
+
+    public TonberryInitResult(TonberryConfiguration config, bool success) : this()
+    {
+        _output = config;
+        Success = success;
+    }
+
+    public override TonberryConfiguration GetResult() => _output;
+
+    public override void Open()
+    {
+        if (_output?.Configuration is not null)
+        {
+            Util.OpenFile(_output.Configuration);
+        }
+    }
+
+    public override void Write() { }
+
+    public override void WriteInConsole() { }
+}
+
+public class TonberryResultCollection : ICollection<TonberryResult>, ITonberryResult
+{
+    private readonly List<TonberryResult> _results = [];
 
     public int Count => _results.Count;
 
     public bool IsReadOnly => false;
 
-    public void Add(ITonberryResult<T> result)
+    public bool Success => _results.All(result => result.Success);
+
+    public void Add(TonberryResult result)
     {
         if (result is not null)
         {
@@ -102,13 +137,51 @@ public class TonberryResultCollection<T> : ICollection<ITonberryResult<T>>
 
     public void Clear() => _results.Clear();
 
-    public bool Contains(ITonberryResult<T> result) => _results.Contains(result);
+    public bool Contains(TonberryResult result) => _results.Contains(result);
 
-    public void CopyTo(ITonberryResult<T>[] array, int offset) => _results.CopyTo(0, array, offset, Count);
+    public void CopyTo(TonberryResult[] array, int offset) => _results.CopyTo(0, array, offset, Count);
 
-    public IEnumerator<ITonberryResult<T>> GetEnumerator() => _results.GetEnumerator();
+    public IEnumerator<TonberryResult> GetEnumerator() => _results.GetEnumerator();
 
-    public bool Remove(ITonberryResult<T> result) => _results.Remove(result);
+    public object GetResult() => Success;
+
+    public bool Remove(TonberryResult result) => _results.Remove(result);
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+}
+
+public abstract class TonberryResult : ITonberryResult
+{
+    public Exception Error { get; }
+
+    public string Item { get; init; }
+
+    public bool Success { get; internal set; }
+
+    internal TonberryResult() { }
+
+    public TonberryResult(string item) => Item = item;
+
+    internal TonberryResult(Exception exception)
+    {
+        Error = exception;
+        Success = false;
+    }
+
+    internal TonberryResult(string item, Exception exception) : this(exception) => Item = item;
+
+    public abstract object GetResult();
+
+    public abstract void Open();
+
+    public abstract void Write();
+
+    public abstract void WriteInConsole();
+}
+
+public interface ITonberryResult
+{
+    bool Success { get; }
+
+    object GetResult();
 }

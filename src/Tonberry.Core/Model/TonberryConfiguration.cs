@@ -63,6 +63,8 @@ public class TonberryConfiguration : BaseConfiguration
     public override string ToString() => Util.GetYamlSerializer().Serialize(this);
 
     public virtual void Save() => File.WriteAllText(Configuration.FullName, ToString());
+
+    public virtual void Save(FileInfo file) => File.WriteAllText(file.FullName, ToString());
 }
 
 public class TonberryProjectConfiguration : BaseConfiguration

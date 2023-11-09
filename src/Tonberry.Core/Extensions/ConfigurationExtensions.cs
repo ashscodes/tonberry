@@ -36,7 +36,7 @@ internal static class ConfigurationExtensions
         => config.Name.Equals(name, Resources.StrCompare)
            || (config.Projects is not null && config.Projects.Any(p => p.Name.Equals(name, Resources.StrCompare)));
 
-    internal static TonberryConfiguration Create(this TonberryConfiguration config)
+    internal static TonberryConfiguration Process(this TonberryConfiguration config)
     {
         if (config.Directory is not null)
         {
@@ -64,12 +64,12 @@ internal static class ConfigurationExtensions
         return config;
     }
 
-    internal static TonberryConfiguration Create(this TonberryConfiguration config, TonberryInitOptions options)
+    internal static TonberryConfiguration Process(this TonberryConfiguration config, TonberryInitOptions options)
     {
-        config.Create();
+        config.Process();
         config.CommitTypes ??= TonberryCommitType.GetDefault();
         config.Maintainers = ["Your.Name"];
-        config.Name = options.Name;
+        config.Name = Ensure.StringHasValue(options.Name, config.Directory.Name);
         config.Version = options.Version;
         if (options.Repository is not null)
         {
@@ -193,6 +193,35 @@ internal static class ConfigurationExtensions
 
     internal static TonberryProject GetProjectLatest(this BaseConfiguration config, TonberryTag to)
         => new TonberryProject(config.Name) { config.GetCommits(null, to) };
+
+    internal static TonberryProjectCollection GetProjects<T>(this TonberryConfiguration config, T options)
+        where T : TonberryChangelogOptions, new()
+    {
+        var projects = new TonberryProjectCollection();
+        config.Init();
+        TonberryTagCollection tags = config.GetTags();
+        config.Close();
+        Ensure.IsFalse(tags.IsMonoRepo && !config.IsMonoRepo, Resources.NoProjectsDefined);
+        switch (tags.Count)
+        {
+            case int x when x == 0 && config.IsMonoRepo:
+                projects.GetUntaggedProjects(config);
+                break;
+            case int x when x == 0 && !config.IsMonoRepo:
+                projects.GetUntaggedProject(config);
+                break;
+            case int x when x > 0 && config.IsMonoRepo:
+                projects.GetTaggedProjects(config, tags, (options is TonberryReleaseOptions));
+                break;
+            case int x when x > 0 && !config.IsMonoRepo:
+                projects.GetTaggedProject(config, tags, (options is TonberryReleaseOptions));
+                break;
+            default:
+                break;
+        }
+
+        return projects;
+    }
 
     internal static TonberryTagCollection GetTags(this TonberryConfiguration config)
     {

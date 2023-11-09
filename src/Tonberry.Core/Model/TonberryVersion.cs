@@ -6,6 +6,10 @@ namespace Tonberry.Core.Model;
 
 public partial class TonberryVersion : IComparable, IComparable<TonberryVersion>, IEquatable<TonberryVersion>
 {
+    public static readonly TonberryVersion General = new TonberryVersion(1, 0, 0);
+
+    public static readonly TonberryVersion None = new TonberryVersion(0, 0, 0);
+
     public string Build { get; internal set; }
 
     public bool HasBuildLabel => !string.IsNullOrEmpty(Build);
