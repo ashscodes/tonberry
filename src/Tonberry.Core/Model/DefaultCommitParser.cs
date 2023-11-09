@@ -81,3 +81,18 @@ internal partial class DefaultCommitParser : ICommitParser
     [GeneratedRegex(@"(?:(?<type>[A-Za-z]+(?:(|\s+)))(?:\((?<scope>.+?(?=\)))\)|):\s(?<synopsis>.*)|(?<plain>[a-zA-Z].*))")]
     internal static partial Regex CommitMessageRegex();
 }
+
+public interface ICommitParser
+{
+    string Breaking { get; set; }
+
+    string Description { get; set; }
+
+    string Scope { get; set; }
+
+    string Synopsis { get; set; }
+
+    string Type { get; set; }
+
+    void Parse(string message);
+}

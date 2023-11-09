@@ -29,3 +29,14 @@ public class DefaultTagParser : ITagParser
         Version = TonberryVersion.TryParse(tag, out TonberryVersion version) ? version : null;
     }
 }
+
+public interface ITagParser
+{
+    bool IsMonoRepoTag { get; set; }
+
+    string ProjectName { get; set; }
+
+    TonberryVersion Version { get; set; }
+
+    void Parse(string tag);
+}

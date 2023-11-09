@@ -1,3 +1,5 @@
+using Tonberry.Core.Model;
+
 namespace Tonberry.Core
 {
     public static class TonberryOptions
