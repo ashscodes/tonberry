@@ -50,26 +50,28 @@ issueUrlFormat: https://github.com/myOrg/myRepo/issues/{0}
 listContributors: true
 maintainers:
   - Your.Name
+# Only necessary for monorepos.
 projects:
   - relativePath: src/path/to/project/folder
     excludeFromChangelog:
-    language:
+      - src/path/to/project/folder
+    language: csharp
     name: Example
-    projectFile:
+    projectFile: src/path/to/project.csproj
     # Auto-Generated: Please do not edit value.
     releaseSha: ''
     tagTemplate: ''
     version: 0.0.0
 projectUrl: https://github.com/myOrg/myRepo.git
 releaseEmoji: ':rocket:'
-thankContributorText:
+thankContributorText: ''
 trackNonMonoRepoProjectCommits: false
 userUrlFormat: https://github.com/{0}
 excludeFromChangelog:
   - src/path/to/project/folder
-language:
+language: csharp
 name: MyProject
-projectFile:
+projectFile: src/path/to/project.csproj
 # Auto-Generated: Please do not edit value.
 releaseSha: ''
 tagTemplate: ''
