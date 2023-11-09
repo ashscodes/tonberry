@@ -2,10 +2,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Tonberry.Core\Tonberry.Core.csproj" />
+    <ProjectReference Include="..\Tonberry.Prompt\Tonberry.Prompt.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Spectre.Console" Version="0.47.0" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.47.0" />
   </ItemGroup>
 
