@@ -8,11 +8,11 @@
 
 The following clients will be available soon:
 
-- tonberry CLI as a [dotnet-tool](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
+- [tonberry CLI](src/Tonberry/) as a [dotnet-tool](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
 
 - MSBuild task.
 
-- PSTonberry - A PowerShell module with additional options for customisation.
+- [PSTonberry](https://github.com/ashscodes/PSTonberry) - A PowerShell module with additional options for customisation.
 
 Most of the instruction below for using the core library will be replaced with docs and a quickstart for the CLI app when it is completed.
 
@@ -40,11 +40,9 @@ Options that are required are as follows:
 | projectUrl | `string` | `https://<host>/<path>/<projectName>.git` |
 | userUrlFormat | `string` | `https://<host>/{0}` |
 
-Creating a new config via the [CreateConfig<T>](src/Tonberry.Core/Extensions/CommandExtensions.cs) extension method with [InitCommand](src/Tonberry.Core/Model/TonberryCommands.cs#L37-48) containg [InitOptions](src/Tonberry.Core/Model/TonberryOptions.cs#L43-54) allows you to just pass the name and url for your GitHub repo to quickly [get started](#getting-started).
-
 ## Commit & Tag Parsing
 
-The commits and tags can have their default parsing overridden by implementing either [ICommitParser](src/Tonberry.Core/Interfaces/ICommitParser.cs) or [ITagParser](src/Tonberry.Core/Interfaces/ITagParser.cs). The default parsers, [DefaultCommitParser](src/Tonberry.Core/Model/DefaultCommitParser.cs) and [DefaultTagParser](src/Tonberry.Core/Model/DefaultTagParser.cs), give an example of how to write the `Parse()` method.
+The commits and tags can have their default parsing overridden by implementing either `ICommitParser` or `ITagParser`. The default parsers, [DefaultCommitParser](src/Tonberry.Core/Model/DefaultCommitParser.cs) and [DefaultTagParser](src/Tonberry.Core/Model/DefaultTagParser.cs), give an example of how to implement the `Parse()` method.
 
 The default tags will be:
 
@@ -54,11 +52,13 @@ The default tags will be:
 
 ## Dependencies
 
-Thanks to all the cool projects that have made this possible. You can check them our and their licenses below.
+:clap: Thanks to all the cool projects that have made this possible. You can check them our and their licenses below.
 
 | Project | Dependencies |
 | --- | --- |
 | [Tonberry.Core](src/Tonberry.Core/) | [LibGit2Sharp](https://github.com/libgit2/libgit2sharp) - [MITLicense](https://github.com/libgit2/libgit2sharp/blob/master/LICENSE.md) |
+| [Tonberry.Prompt](src/Tonberry.Prompt/) | [Spectre.Console](https://github.com/spectreconsole/spectre.console) - [MITLicense](https://github.com/spectreconsole/spectre.console/blob/main/LICENSE.md) |
+| [Tonberry](src/Tonberry/) | [Spectre.Console.Cli](https://github.com/spectreconsole/spectre.console) - [MITLicense](https://github.com/spectreconsole/spectre.console/blob/main/LICENSE.md) |
 
 ## Future Ideas
 
