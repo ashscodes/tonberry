@@ -1,9 +1,11 @@
 using System;
+using System.ComponentModel;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Tonberry.Core.Model;
 
+[TypeConverter(typeof(TonberryVersionConverter))]
 public partial class TonberryVersion : IComparable, IComparable<TonberryVersion>, IEquatable<TonberryVersion>
 {
     public static readonly TonberryVersion General = new TonberryVersion(1, 0, 0);
@@ -136,7 +138,13 @@ public partial class TonberryVersion : IComparable, IComparable<TonberryVersion>
     public static TonberryVersion Parse(string value)
     {
         Ensure.StringNotNullOrEmpty(value, nameof(value));
-        return TryParse(value, out TonberryVersion version) ? version : null;
+
+        if (TryParse(value, out TonberryVersion version))
+        {
+            return version;
+        }
+
+        throw new FormatException(string.Format(Resources.InvalidFormat, typeof(TonberryVersion)));
     }
 
     public static bool TryParse(string value, out TonberryVersion version)
@@ -188,56 +196,53 @@ public partial class TonberryVersion : IComparable, IComparable<TonberryVersion>
     {
         var compareBuildNull = string.IsNullOrEmpty(build);
         var thisBuildNull = string.IsNullOrEmpty(Build);
+
         if (thisBuildNull && compareBuildNull)
         {
             return 0;
         }
-        else if (thisBuildNull && !compareBuildNull)
+        else if (thisBuildNull)
         {
             return 1;
         }
-        else if (!thisBuildNull && compareBuildNull)
+        else if (compareBuildNull)
         {
             return -1;
         }
-        else
+
+        var thisSplit = Build.Split('.');
+        var compareSplit = build.Split('.');
+        var minLength = Math.Min(thisSplit.Length, compareSplit.Length);
+
+        for (int i = 0; i < minLength; i++)
         {
-            var thisSplit = Build.Split('.');
-            var compareSplit = build.Split('.');
-            var minimum = thisSplit.Length < compareSplit.Length ? thisSplit.Length : compareSplit.Length;
-            for (int i = 0; i < minimum; i++)
+            var thisIsNumeric = int.TryParse(thisSplit[i], out int thisNumber);
+            var compareIsNumeric = int.TryParse(compareSplit[i], out int compareNumber);
+            if (thisIsNumeric && compareIsNumeric)
             {
-                var comparison = compareSplit[i];
-                var reference = thisSplit[i];
-                var compareIsNumeric = int.TryParse(comparison, out int compareNumber);
-                var refIsNumeric = int.TryParse(reference, out int refNumber);
-                if (refIsNumeric && compareIsNumeric)
+                var numberComparison = thisNumber.CompareTo(compareNumber);
+                if (numberComparison != 0)
                 {
-                    if (refNumber != compareNumber)
-                    {
-                        return refNumber.CompareTo(compareNumber);
-                    }
-                }
-                else if (refIsNumeric)
-                {
-                    return -1;
-                }
-                else if (compareIsNumeric)
-                {
-                    return 1;
-                }
-                else
-                {
-                    int stringCompare = string.CompareOrdinal(reference, comparison);
-                    if (stringCompare != 0)
-                    {
-                        return stringCompare;
-                    }
+                    return numberComparison;
                 }
             }
+            else if (thisIsNumeric)
+            {
+                return -1;
+            }
+            else if (compareIsNumeric)
+            {
+                return 1;
+            }
 
-            return thisSplit.Length.CompareTo(compareSplit.Length);
+            int stringCompare = string.CompareOrdinal(thisSplit[i], compareSplit[i]);
+            if (stringCompare != 0)
+            {
+                return stringCompare;
+            }
         }
+
+        return thisSplit.Length.CompareTo(compareSplit.Length);
     }
 
     private int ComparePreRelease(string preRelease, string build)
@@ -246,6 +251,7 @@ public partial class TonberryVersion : IComparable, IComparable<TonberryVersion>
         var comparePreReleaseNull = string.IsNullOrEmpty(preRelease);
         var thisBuildNull = string.IsNullOrEmpty(Build);
         var thisPreReleaseNull = string.IsNullOrEmpty(PreRelease);
+
         if (thisPreReleaseNull && comparePreReleaseNull)
         {
             if (!compareBuildNull || !thisBuildNull)
@@ -263,59 +269,57 @@ public partial class TonberryVersion : IComparable, IComparable<TonberryVersion>
         {
             return -1;
         }
-        else
+
+        var thisSplit = Build.Split('.');
+        var compareSplit = build.Split('.');
+        var minLength = Math.Min(thisSplit.Length, compareSplit.Length);
+
+        for (int i = 0; i < minLength; i++)
         {
-            var thisSplit = PreRelease.Split('.');
-            var compareSplit = preRelease.Split('.');
-            var minimum = thisSplit.Length < compareSplit.Length ? thisSplit.Length : compareSplit.Length;
-            for (int i = 0; i < minimum; i++)
+            var thisIsNumeric = int.TryParse(thisSplit[i], out int thisNumber);
+            var compareIsNumeric = int.TryParse(compareSplit[i], out int compareNumber);
+            if (thisIsNumeric && compareIsNumeric)
             {
-                var comparison = compareSplit[i];
-                var reference = thisSplit[i];
-                var compareIsNumeric = int.TryParse(comparison, out int compareNumber);
-                var refIsNumeric = int.TryParse(reference, out int refNumber);
-                if (refIsNumeric && compareIsNumeric)
+                var numberComparison = thisNumber.CompareTo(compareNumber);
+                if (numberComparison != 0)
                 {
-                    if (refNumber != compareNumber)
-                    {
-                        return refNumber.CompareTo(compareNumber);
-                    }
+                    return numberComparison;
                 }
-                else if (reference.Equals("rc", Resources.StrCompare) && !comparison.Equals("rc", Resources.StrCompare))
-                {
-                    return 1;
-                }
-                else if (!reference.Equals("rc", Resources.StrCompare) && comparison.Equals("rc", Resources.StrCompare))
+            }
+            else if (thisSplit[i].Equals("rc", Resources.StrCompare) && !compareSplit[i].Equals("rc", Resources.StrCompare))
+            {
+                return 1;
+            }
+            else if (!thisSplit[i].Equals("rc", Resources.StrCompare) && compareSplit[i].Equals("rc", Resources.StrCompare))
+            {
+                return -1;
+            }
+            else
+            {
+                if (thisIsNumeric)
                 {
                     return -1;
                 }
-                else
+
+                if (compareIsNumeric)
                 {
-                    if (refIsNumeric)
-                    {
-                        return -1;
-                    }
+                    return 1;
+                }
 
-                    if (compareIsNumeric)
-                    {
-                        return 1;
-                    }
-
-                    int stringCompare = string.CompareOrdinal(reference, comparison);
-                    if (stringCompare != 0)
-                    {
-                        return stringCompare;
-                    }
+                int stringCompare = string.CompareOrdinal(thisSplit[i], compareSplit[i]);
+                if (stringCompare != 0)
+                {
+                    return stringCompare;
                 }
             }
-
-            if (!compareBuildNull || !thisBuildNull)
-            {
-                return CompareBuild(build);
-            }
-
-            return thisSplit.Length.CompareTo(compareSplit.Length);
         }
+
+        if (!compareBuildNull || !thisBuildNull)
+        {
+            return CompareBuild(build);
+        }
+
+        return thisSplit.Length.CompareTo(compareSplit.Length);
     }
 
     private TonberryVersion GetNext(bool bumpMajor,

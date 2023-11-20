@@ -77,7 +77,6 @@ public sealed class InitSettings : BaseSettings<TonberryInitOptions>, ITonberryI
 
     [CommandOption("-v|--version")]
     [Description(Resources.InitVersionOpt)]
-    [TypeConverter(typeof(TonberryVersionTypeConverter))]
     public TonberryVersion Version { get; set; } = null;
 
     public override TonberryInitOptions GetOptions() => new((ITonberryInitOptions)this);

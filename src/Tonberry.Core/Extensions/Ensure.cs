@@ -87,7 +87,7 @@ internal static class Ensure
     {
         if (value is null)
         {
-            throw new TonberryApplicationException(message);
+            throw new TonberryApplicationException(message, value);
         }
     }
 }

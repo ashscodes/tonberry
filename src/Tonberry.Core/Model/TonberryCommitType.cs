@@ -1,9 +1,11 @@
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
 namespace Tonberry.Core.Model;
 
+[TypeConverter(typeof(TonberryCommitTypeConverter))]
 public sealed class TonberryCommitType
 {
     [Required]

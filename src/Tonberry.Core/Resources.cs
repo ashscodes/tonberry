@@ -22,9 +22,17 @@ internal static class Resources
 
     public const string DefaultMonoRepoProjectTag = "v{0}/#/{1}";
 
+    public const string InvalidPropertyCast = "Cannot cast value for property '{0}' to type '{1}'";
+
+    public const string InvalidTypeCast = "Cannot cast from object type '{0}' to '{1}'";
+
     public const string InvalidCommitMessage = "A new commit message requires a type and short message describing the changes. Please specify a value for 'commitMessage' and 'type'.";
 
     public const string InvalidEnumType = "The value provided '{0}' is not valid. The following values are available: {1}.";
+
+    public const string InvalidFormat = "Invalid version format. The input does not match the format of type '{0}'.";
+
+    public const string InvalidPrimitive = "{0} is not a valid value for {1}.";
 
     public const string MarkdownBreakingChangeHeader = ":warning: BREAKING CHANGES";
 
@@ -75,6 +83,8 @@ internal static class Resources
     public const string TonberryRootConfig = "tonberry.config.yml";
 
     public const string UnexpectedType = "Could not process the object of type '{0}'. The expected type is '{1}'.";
+
+    public const string ValueIsNull = "The value for '{0}' is required, but was null.";
 
     public const string VersionMarkdownRow = "| {0} | {1} |";
 }

@@ -6,7 +6,7 @@ using YamlDotNet.Serialization;
 
 namespace Tonberry.Core.Yaml;
 
-public class TonberryVersionConverter : IYamlTypeConverter
+public class TonberryVersionYamlConverter : IYamlTypeConverter
 {
     public bool Accepts(Type type) => type == typeof(TonberryVersion);
 

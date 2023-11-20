@@ -1,9 +1,12 @@
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using YamlDotNet.Serialization;
 
 namespace Tonberry.Core.Model;
+
+[TypeConverter(typeof(TonberryConfigurationConverter))]
 
 public class TonberryConfiguration : BaseConfiguration
 {
@@ -62,11 +65,12 @@ public class TonberryConfiguration : BaseConfiguration
 
     public override string ToString() => Util.GetYamlSerializer().Serialize(this);
 
-    public virtual void Save() => File.WriteAllText(Configuration.FullName, ToString());
+    public virtual void Save() => Save(Configuration);
 
     public virtual void Save(FileInfo file) => File.WriteAllText(file.FullName, ToString());
 }
 
+[TypeConverter(typeof(TonberryProjectConfigurationConverter))]
 public class TonberryProjectConfiguration : BaseConfiguration
 {
     [Required]

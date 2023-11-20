@@ -115,13 +115,13 @@ internal static class Util
     internal static IDeserializer GetYamlDeserializer() => new DeserializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .WithRequiredPropertyValidation()
-        .WithTypeConverter(new TonberryVersionConverter())
+        .WithTypeConverter(new TonberryVersionYamlConverter())
         .IgnoreUnmatchedProperties()
         .Build();
 
     internal static ISerializer GetYamlSerializer() => new SerializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
-        .WithTypeConverter(new TonberryVersionConverter())
+        .WithTypeConverter(new TonberryVersionYamlConverter())
         .Build();
 
     internal static void OpenFile(FileInfo file, string app = null)
