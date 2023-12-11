@@ -10,8 +10,6 @@ The following clients will be available soon:
 
 - [tonberry CLI](src/Tonberry/) as a [dotnet-tool](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools).
 
-- MSBuild task.
-
 - [PSTonberry](https://github.com/ashscodes/PSTonberry) - A PowerShell module with additional options for customisation.
 
 Most of the instruction below for using the core library will be replaced with docs and a quickstart for the CLI app when it is completed.
